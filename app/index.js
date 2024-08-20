@@ -17,13 +17,9 @@ const upload = multer({ storage });
 // Conecta ao MongoDB
 connectToDatabase();
 
-
 app.get("/", (req, res) => {
   res.send({ ola: "seja bem-vindo" });
 });
-
-
-
 
 // Rota GET para buscar dados de um usuário pelo ID
 app.get("/receber/:id", async (req, res) => {
@@ -35,40 +31,45 @@ app.get("/receber/:id", async (req, res) => {
 
     if (!dado) {
       // Se não encontrar o documento, retorna 404
-      return res.status(404).json({ message: 'Dado não encontrado' });
+      return res.status(404).json({ message: "Dado não encontrado" });
     }
 
     // Retorna os dados encontrados
     res.json(dado);
   } catch (err) {
     // Retorna 500 se houver um erro na busca
-    res.status(500).json({ message: 'Erro ao buscar os dados', error: err.message });
+    res
+      .status(500)
+      .json({ message: "Erro ao buscar os dados", error: err.message });
   }
 });
 
-
-
-// Rota POST para salvar dados no MongoDB com imagem
-app.post("/enviar", upload.single('image'), async (req, res) => {
-  const { name, title, description } = req.body;
-  const image = req.file.buffer.toString('base64'); // Converte a imagem para Base64
-
-  const novoDado = new DataModel({
-    name,
-    title,
-    description,
-    image
-  });
-
+// Rota POST para enviar dados e salvar no MongoDB
+app.post("/enviar", upload.single("image"), async (req, res) => {
   try {
-    const dadoSalvo = await novoDado.save();
-    res.status(201).send(console.log("Dados enviados com sucesso"));
+    // Converte o arquivo para Base64
+    const imageBase64 = req.file ? req.file.buffer.toString("base64") : "";
+
+    // Cria um novo documento com os dados recebidos
+    const novoDado = new DataModel({
+      name: req.body.name,
+      title: req.body.title,
+      description: req.body.description,
+      image: imageBase64, // Imagem em Base64
+    });
+
+    // Salva o documento no MongoDB
+    const salvoDado = await novoDado.save();
+
+    // Retorna o ID do documento criado
+    res.json({ id: salvoDado._id });
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao salvar os dados', error: err.message });
+    console.error("Erro ao salvar os dados:", err);
+    res
+      .status(500)
+      .json({ message: "Erro ao salvar os dados", error: err.message });
   }
 });
-
-
 
 app.listen(port, () => {
   console.log(`API e página rodando na porta ${port}`);
